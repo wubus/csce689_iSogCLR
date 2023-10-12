@@ -1,0 +1,40 @@
+#!/bin/bash
+
+##NECESSARY JOB SPECIFICATIONS
+#SBATCH --time=20:00:00
+#SBATCH --mem=60G
+#SBATCH --output=./job_output_%x.%j
+#SBATCH --ntasks=1
+#SBATCH --ntasks-per-node=1
+#SBATCH --cpus-per-task=8
+#SBATCH --gpus-per-task=1
+#SBATCH --partition=gpu
+
+#First Executable Line
+source ~/.bashrc
+conda activate csce689_proj
+
+export PYTHONPATH="$PYTHONPATH:./bimodal_exps"
+export HUGGINGFACE_HUB_CACHE='./checkpoints/huggingface'
+
+data_path=./datasets
+ann_path=./clip_train
+train_image_root=cc3m/cc_data/train
+data=cc3m
+train_file=${data}_train_new.json
+gamma=0.8
+rho=8.0
+
+CUDA_VISIBLE_DEVICES=0 python ./bimodal_exps/clip.py \
+    --data_path ${data_path} \
+    --ann_path ${ann_path} \
+    --train_file ${train_file} \
+    --train_image_root ${train_image_root} \
+    --output_dir output/isogclr_${data}_g${gamma}_rho${rho}_0.01 \
+    --init_model \
+    --use_amp \
+    --ita_type sogclr \
+    --tau_init 0.01 \
+    --sogclr_gamma ${gamma} \
+    --eta_init 0.03 --sched const \
+    --no-distributed
