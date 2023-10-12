@@ -173,9 +173,9 @@ def create_zeroshot_dataloader(dataset_name, data_folder, image_size):
     ])
 
     if dataset_name == 'cifar10':
-        dataset = datasets.CIFAR10(root=data_folder, download=True, train=False, transform=val_transform)
+        dataset = datasets.CIFAR10(root=data_folder, download=False, train=False, transform=val_transform)
     elif dataset_name == 'cifar100':
-        dataset = datasets.CIFAR100(root=data_folder, download=True, train=False, transform=val_transform)
+        dataset = datasets.CIFAR100(root=data_folder, download=False, train=False, transform=val_transform)
     else:
         dataset = datasets.ImageFolder(root=data_folder, transform=val_transform)
 
