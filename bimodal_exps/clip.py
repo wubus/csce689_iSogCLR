@@ -584,7 +584,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
     # data path
-    parser.add_argument('--data_path', default='/data/qiuzh/VLP')
+    parser.add_argument('--data_path', default='./datasets')
+    parser.add_argument('--ann_path', default='./clip_train')
     parser.add_argument('--train_file', default='downstream/cc3m_train_new.json')
     parser.add_argument('--train_image_root', default='cc3m')
 
@@ -615,8 +616,8 @@ if __name__ == '__main__':
     # training & test settings
     parser.add_argument('--use_amp', action='store_true')
     parser.add_argument('--init_model', action='store_true')
-    parser.add_argument('--batch_size_train', default=256, type=int)
-    parser.add_argument('--batch_size_test', default=256, type=int)
+    parser.add_argument('--batch_size_train', default=128, type=int)
+    parser.add_argument('--batch_size_test', default=1024, type=int)
     parser.add_argument('--k_test', default=256, type=int)
     parser.add_argument('--evaluate', action='store_true')
     parser.add_argument('--checkpoint', default='', type=str)
@@ -667,12 +668,12 @@ if __name__ == '__main__':
     if args.check_samples_tau:
         args.evaluate = True
 
-    args.train_file = os.path.join(args.data_path, args.train_file)
+    args.train_file = os.path.join(args.ann_path, args.train_file)
     args.train_image_root = os.path.join(args.data_path, args.train_image_root)
 
-    args.val_coco_file = os.path.join(args.data_path, 'clip_train/coco_val_new.json')
-    args.test_coco_file = os.path.join(args.data_path, 'clip_train/coco_test_new.json')
-    args.coco_image_root = os.path.join(args.data_path, 'coco')
+    args.val_coco_file = os.path.join(args.ann_path, 'coco_val_new.json')
+    args.test_coco_file = os.path.join(args.ann_path, 'coco_test_new.json')
+    args.coco_image_root = os.path.join(args.data_path, 'mscoco')
     # args.val_flickr_file = os.path.join(args.data_path, 'clip_train/flickr30k_val.json')
     # args.test_flickr_file = os.path.join(args.data_path, 'clip_train/flickr30k_test.json')
     # args.flickr_image_root = os.path.join(args.data_path, 'flickr30k')
