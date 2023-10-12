@@ -366,12 +366,12 @@ def main(args):
     print("Creating retrieval dataset")
     train_dataset = create_train_dataset('re', args)
     val_coco_dataset, test_coco_dataset = create_val_dataset('re', args, args.val_coco_file, args.coco_image_root, args.test_coco_file)
-    val_flickr_dataset, test_flickr_dataset = create_val_dataset('re', args, args.val_flickr_file, args.flickr_image_root, args.test_flickr_file)
-    sbu_dataset = create_val_dataset('re', args, args.sbu_file, args.sbu_image_root)
+    # val_flickr_dataset, test_flickr_dataset = create_val_dataset('re', args, args.val_flickr_file, args.flickr_image_root, args.test_flickr_file)
+    # sbu_dataset = create_val_dataset('re', args, args.sbu_file, args.sbu_image_root)
     print("len of train_dataset:", len(train_dataset))
     print("len of coco val/test:", len(val_coco_dataset), len(test_coco_dataset))
-    print("len of flickr val/test:", len(val_flickr_dataset), len(test_flickr_dataset))
-    print("len of sbu data:", len(sbu_dataset))
+    # print("len of flickr val/test:", len(val_flickr_dataset), len(test_flickr_dataset))
+    # print("len of sbu data:", len(sbu_dataset))
 
     if args.extract_data:
         idx_list = []
@@ -401,17 +401,17 @@ def main(args):
 
     val_coco_loader, test_coco_loader = create_val_loader([val_coco_dataset, test_coco_dataset], samplers[1:], 
                                                           [args.batch_size_test]*2, [8]*2, [None]*2)
-    val_flickr_loader, test_flickr_loader = create_val_loader([val_flickr_dataset, test_flickr_dataset], samplers[1:], 
-                                                              [args.batch_size_test]*2, [8]*2, [None]*2)
-    sbu_loader= create_val_loader([sbu_dataset], [None], [args.batch_size_test], [32], [None])[0]
+    # val_flickr_loader, test_flickr_loader = create_val_loader([val_flickr_dataset, test_flickr_dataset], samplers[1:], 
+    #                                                           [args.batch_size_test]*2, [8]*2, [None]*2)
+    # sbu_loader= create_val_loader([sbu_dataset], [None], [args.batch_size_test], [32], [None])[0]
        
     if args.text_encoder == 'roberta-large':
         tokenizer = RobertaTokenizer.from_pretrained(args.text_encoder)
     else:
-        tokenizer = AutoTokenizer.from_pretrained(args.text_encoder, local_files_only=True)
+        tokenizer = AutoTokenizer.from_pretrained(args.text_encoder)
 
     #### Zero-shot transfer ####
-    zeroshot_dataloader = create_zeroshot_dataloader(dataset_name=args.zs_dataset, data_folder=args.zs_datafolder, image_size=args.image_res)
+    # zeroshot_dataloader = create_zeroshot_dataloader(dataset_name=args.zs_dataset, data_folder=args.zs_datafolder, image_size=args.image_res)
 
     #### Model #### 
     print("Creating model")
@@ -488,11 +488,11 @@ def main(args):
         score_val_i2t_coco, score_val_t2i_coco = evaluation(model_without_ddp, val_coco_loader, tokenizer, device, args)
         score_test_i2t_coco, score_test_t2i_coco = evaluation(model_without_ddp, test_coco_loader, tokenizer, device, args)
 
-        score_val_i2t_flickr, score_val_t2i_flickr = evaluation(model_without_ddp, val_flickr_loader, tokenizer, device, args)
-        score_test_i2t_flickr, score_test_t2i_flickr = evaluation(model_without_ddp, test_flickr_loader, tokenizer, device, args)
+        # score_val_i2t_flickr, score_val_t2i_flickr = evaluation(model_without_ddp, val_flickr_loader, tokenizer, device, args)
+        # score_test_i2t_flickr, score_test_t2i_flickr = evaluation(model_without_ddp, test_flickr_loader, tokenizer, device, args)
 
-        if args.evaluate:
-            zeroshot_results = zeroshot_transfer(model_without_ddp, zeroshot_dataloader, args.zs_dataset, tokenizer, device)
+        # if args.evaluate:
+        #     zeroshot_results = zeroshot_transfer(model_without_ddp, zeroshot_dataloader, args.zs_dataset, tokenizer, device)
     
         if utils.is_main_process():  
       
@@ -501,11 +501,11 @@ def main(args):
             test_result_coco = itm_eval(score_test_i2t_coco, score_test_t2i_coco, test_coco_loader.dataset.txt2img, test_coco_loader.dataset.img2txt)    
             print("coco test:", test_result_coco)
 
-            if args.evaluate:
-                val_result_flickr = itm_eval(score_val_i2t_flickr, score_val_t2i_flickr, val_flickr_loader.dataset.txt2img, val_flickr_loader.dataset.img2txt)  
-                print("flickr val:", val_result_flickr)
-                test_result_flickr = itm_eval(score_test_i2t_flickr, score_test_t2i_flickr, test_flickr_loader.dataset.txt2img, test_flickr_loader.dataset.img2txt)    
-                print("flickr test:", test_result_flickr)
+            # if args.evaluate:
+            #     val_result_flickr = itm_eval(score_val_i2t_flickr, score_val_t2i_flickr, val_flickr_loader.dataset.txt2img, val_flickr_loader.dataset.img2txt)  
+            #     print("flickr val:", val_result_flickr)
+            #     test_result_flickr = itm_eval(score_test_i2t_flickr, score_test_t2i_flickr, test_flickr_loader.dataset.txt2img, test_flickr_loader.dataset.img2txt)    
+            #     print("flickr test:", test_result_flickr)
 
             # save tau for visualization
             if not args.evaluate and args.store_tau and (epoch+1)%10==0:
@@ -525,16 +525,16 @@ def main(args):
                 with open(os.path.join(args.output_dir, "coco_log.txt"),"a") as f:
                     f.write(json.dumps(log_stats) + "\n")    
 
-                log_stats = {**{f'val_{k}': v for k, v in val_result_flickr.items()},
-                             **{f'test_{k}': v for k, v in test_result_flickr.items()},                  
-                             'epoch': epoch,
-                             'data': 'flickr',
-                            }
-                with open(os.path.join(args.output_dir, "flickr_log.txt"),"a") as f:
-                    f.write(json.dumps(log_stats) + "\n") 
+                # log_stats = {**{f'val_{k}': v for k, v in val_result_flickr.items()},
+                #              **{f'test_{k}': v for k, v in test_result_flickr.items()},                  
+                #              'epoch': epoch,
+                #              'data': 'flickr',
+                #             }
+                # with open(os.path.join(args.output_dir, "flickr_log.txt"),"a") as f:
+                #     f.write(json.dumps(log_stats) + "\n") 
 
-                with open(os.path.join(args.output_dir, f"zeroshot_{args.zs_dataset}_log.txt"), "a") as f:
-                    f.write(json.dumps(zeroshot_results) + "\n")
+                # with open(os.path.join(args.output_dir, f"zeroshot_{args.zs_dataset}_log.txt"), "a") as f:
+                #     f.write(json.dumps(zeroshot_results) + "\n")
 
             else:
                 log_stats = {**{f'train_{k}': v for k, v in train_stats.items()},
@@ -659,8 +659,8 @@ if __name__ == '__main__':
     parser.add_argument('--extract_data', action='store_true')
 
     # zero-shot transfer
-    parser.add_argument('--zs_dataset', required=True, choices=['cifar10', 'cifar100', 'imagenet'])
-    parser.add_argument('--zs_datafolder', default='./datasets', type=str)
+    # parser.add_argument('--zs_dataset', required=True, choices=['cifar10', 'cifar100', 'imagenet'])
+    # parser.add_argument('--zs_datafolder', default='./datasets', type=str)
 
     args = parser.parse_args()
 
@@ -673,12 +673,12 @@ if __name__ == '__main__':
     args.val_coco_file = os.path.join(args.data_path, 'clip_train/coco_val_new.json')
     args.test_coco_file = os.path.join(args.data_path, 'clip_train/coco_test_new.json')
     args.coco_image_root = os.path.join(args.data_path, 'coco')
-    args.val_flickr_file = os.path.join(args.data_path, 'clip_train/flickr30k_val.json')
-    args.test_flickr_file = os.path.join(args.data_path, 'clip_train/flickr30k_test.json')
-    args.flickr_image_root = os.path.join(args.data_path, 'flickr30k')
+    # args.val_flickr_file = os.path.join(args.data_path, 'clip_train/flickr30k_val.json')
+    # args.test_flickr_file = os.path.join(args.data_path, 'clip_train/flickr30k_test.json')
+    # args.flickr_image_root = os.path.join(args.data_path, 'flickr30k')
 
-    args.sbu_file = os.path.join(args.data_path, 'clip_train/sbu_train_new.json')
-    args.sbu_image_root = os.path.join(args.data_path, 'sbu')
+    # args.sbu_file = os.path.join(args.data_path, 'clip_train/sbu_train_new.json')
+    # args.sbu_image_root = os.path.join(args.data_path, 'sbu')
 
     Path(args.output_dir).mkdir(parents=True, exist_ok=True)
 
