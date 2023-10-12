@@ -348,7 +348,10 @@ def itm_eval(scores_i2t, scores_t2i, txt2img, img2txt):
 
 
 def main(args):
-    utils.init_distributed_mode(args)    
+    if args.distributed:
+        utils.init_distributed_mode(args)    
+    else:
+        args.gpu = 0
     
     device = torch.device(args.device)
 
@@ -457,8 +460,11 @@ def main(args):
 
     optimizer = create_optimizer(args, model)
     lr_scheduler, _ = create_scheduler(args, optimizer)
-    model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu])
-    model_without_ddp = model.module
+    if args.distributed:
+        model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu])
+        model_without_ddp = model.module
+    else:
+        model_without_ddp = model
 
     if args.use_amp:
         grad_scaler = torch.cuda.amp.GradScaler()
@@ -618,7 +624,8 @@ if __name__ == '__main__':
     parser.add_argument('--seed', default=42, type=int)
     parser.add_argument('--world_size', default=1, type=int, help='number of distributed processes')    
     parser.add_argument('--dist_url', default='env://', help='url used to set up distributed training')
-    parser.add_argument('--distributed', default=True, type=bool)
+    parser.add_argument('--distributed', action='store_true')
+    parser.add_argument('--no-distributed', dest='distributed', action='store_false')
 
     # output path
     parser.add_argument('--output_dir', default='./output/clip_test')  
