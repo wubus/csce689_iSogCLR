@@ -3,8 +3,8 @@ from functools import partial
 import timm
 from transformers import AutoModel, RobertaModel
 
-from models.losses import CLIP_Loss, CyCLIP_Loss, SogCLR_Loss, SogCLR_DRO_Loss, VICReg_Loss
-from models.losses import iSogCLR_New_v2_Loss, iSogCLR_New_v1_Loss, onlineCLR_Loss, iSogCLR_New_Loss, iSogCLR_Denoise_Loss
+from models.losses import CLIP_Loss, CyCLIP_Loss, SogCLR_Loss, VICReg_Loss
+from models.losses import iSogCLR_New_v2_Loss, iSogCLR_New_v1_Loss, onlineCLR_Loss, iSogCLR_New_Loss
 
 import torch
 from torch import nn
@@ -56,7 +56,7 @@ class CLIP(nn.Module):
             self.text_encoder = RobertaModel.from_pretrained(text_encoder)
             self.text_proj = nn.Linear(1024, embed_dim)
         else:
-            self.text_encoder = AutoModel.from_pretrained(text_encoder, local_files_only=True)
+            self.text_encoder = AutoModel.from_pretrained(text_encoder)
             self.text_proj = nn.Linear(768, embed_dim)
 
         if not init_model:
@@ -79,12 +79,13 @@ class CLIP(nn.Module):
             self.criterion = VICReg_Loss(world_size=world_size, dim_size=embed_dim, sim_coeff=vicreg_sim_coeff, std_coeff=vicreg_std_coeff)
 
         elif self.ita_type == 'sogclr':
-            self.criterion = SogCLR_Loss(world_size=world_size, gamma=sogclr_gamma, temperature=self.temp, bsz=bsz, enable_surrogate=enable_surrogate, 
-                                         surrogate_c=surrogate_c, lamda_rho=lamda_rho, lamda_init=lamda_init)
+            # self.criterion = SogCLR_Loss(world_size=world_size, gamma=sogclr_gamma, temperature=self.temp, bsz=bsz, enable_surrogate=enable_surrogate, 
+            #                              surrogate_c=surrogate_c, lamda_rho=lamda_rho, lamda_init=lamda_init)
+            self.criterion = SogCLR_Loss(world_size=world_size, gamma=sogclr_gamma, temperature=self.temp, bsz=bsz)
 
-        elif self.ita_type == 'sogclr_dro':
-            self.criterion = SogCLR_DRO_Loss(world_size=world_size, gamma=sogclr_gamma, rho_init=rho_init, tau_init=tau_init, bsz=bsz,
-                                             eta_init=eta_init, beta_u=beta_u, enable_surrogate=enable_surrogate)
+        # elif self.ita_type == 'sogclr_dro':
+        #     self.criterion = SogCLR_DRO_Loss(world_size=world_size, gamma=sogclr_gamma, rho_init=rho_init, tau_init=tau_init, bsz=bsz,
+        #                                      eta_init=eta_init, beta_u=beta_u, enable_surrogate=enable_surrogate)
         elif self.ita_type == 'isogclr_new_v2':
             self.criterion = iSogCLR_New_v2_Loss(world_size=world_size, gamma=sogclr_gamma, rho_init=rho_init, tau_init=tau_init, bsz=bsz,
                                                  eta_init=eta_init, beta_u=beta_u)
