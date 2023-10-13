@@ -127,8 +127,8 @@ class SogCLR_Loss(nn.Module):
         g_I = torch.sum(exp_image_diffs, dim=1, keepdim=True) / (batch_size-1)
         g_T = torch.sum(exp_text_diffs, dim=0, keepdim=True) / (batch_size-1)
 
-        print("g_I:", g_I.mean())
-        print("g_T:", g_T.mean())
+        # print("g_I:", g_I.mean())
+        # print("g_T:", g_T.mean())
 
         if epoch == 0:
             s_I = g_I
@@ -464,8 +464,8 @@ class iSogCLR_New_v1_Loss(nn.Module):
         g_I = torch.sum(exp_image_temp_term, dim=1, keepdim=True) / self.neg_num
         g_T = torch.sum(exp_text_temp_term, dim=0, keepdim=True) / self.neg_num
 
-        print("g_I:", g_I.mean())
-        print("g_T:", g_T.mean())
+        # print("g_I:", g_I.mean())
+        # print("g_T:", g_T.mean())
 
         if epoch == 0:
             s_I = g_I
