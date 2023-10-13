@@ -249,7 +249,7 @@ def evaluation(model, data_loader, tokenizer, device, args):
         text_input = tokenizer(text, padding='max_length', truncation=True, max_length=30, return_tensors="pt").to(device) 
         text_output = model.text_encoder(text_input.input_ids, attention_mask=text_input.attention_mask, output_hidden_states=False)  
         text_embed = F.normalize(model.text_proj(text_output.last_hidden_state[:,0,:]), dim=-1)
-        text_embeds.append(text_embed)
+        text_embeds.append(text_embed.cpu())
     text_embeds = torch.cat(text_embeds,dim=0)
     
     image_embeds = []
@@ -258,10 +258,10 @@ def evaluation(model, data_loader, tokenizer, device, args):
         image_feat = model.visual_encoder(image)        
         image_embed = model.vision_proj(image_feat)            
         image_embed = F.normalize(image_embed, dim=-1)      
-        image_embeds.append(image_embed)
+        image_embeds.append(image_embed.cpu())
     image_embeds = torch.cat(image_embeds,dim=0)
     
-    sims_matrix = image_embeds @ text_embeds.t()
+    sims_matrix = image_embeds.to(device) @ text_embeds.to(device).t()
     score_matrix_i2t = torch.full((len(data_loader.dataset.image),len(texts)),-100.0).to(device)
     
     num_tasks = utils.get_world_size()
@@ -612,14 +612,14 @@ if __name__ == '__main__':
     parser.add_argument('--weight_decay', default=0.02, type=float)
     parser.add_argument('--decay_rate', default=1, type=float)
     parser.add_argument('--epochs', default=30, type=int)
-    parser.add_argument('--warmup_epochs', default=20, type=int)
+    parser.add_argument('--warmup_epochs', default=5, type=int)
     parser.add_argument('--cooldown_epochs', default=0, type=int)
 
     # training & test settings
     parser.add_argument('--use_amp', action='store_true')
     parser.add_argument('--init_model', action='store_true')
     parser.add_argument('--batch_size_train', default=128, type=int)
-    parser.add_argument('--batch_size_test', default=1024, type=int)
+    parser.add_argument('--batch_size_test', default=512, type=int)
     parser.add_argument('--k_test', default=256, type=int)
     parser.add_argument('--evaluate', action='store_true')
     parser.add_argument('--checkpoint', default='', type=str)
