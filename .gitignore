@@ -1,0 +1,8 @@
+datasets
+datasets/
+clip_train/
+pyrightconfig.json
+job_output*
+__pycache__/
+output/
+checkpoints/
