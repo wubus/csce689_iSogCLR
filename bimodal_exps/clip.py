@@ -673,8 +673,8 @@ if __name__ == '__main__':
     args.train_file = os.path.join(args.ann_path, args.train_file)
     args.train_image_root = os.path.join(args.data_path, args.train_image_root)
 
-    args.val_coco_file = os.path.join(args.ann_path, 'coco_val_new.json')
-    args.test_coco_file = os.path.join(args.ann_path, 'coco_test_new.json')
+    args.val_coco_file = os.path.join(args.ann_path, 'coco_val.json')
+    args.test_coco_file = os.path.join(args.ann_path, 'coco_test.json')
     args.coco_image_root = os.path.join(args.data_path, 'mscoco')
     # args.val_flickr_file = os.path.join(args.data_path, 'clip_train/flickr30k_val.json')
     # args.test_flickr_file = os.path.join(args.data_path, 'clip_train/flickr30k_test.json')
