@@ -35,12 +35,15 @@ class CLIP(nn.Module):
                  vicreg_std_coeff = 25.0,
                  use_temp_net = True,
                  alpha = 1.0,
+                 distributed=True,
                  ):
         super().__init__()
 
         self.temp = temp
         self.learnable_temp = learnable_temp
         self.personalized_tau = personalized_tau
+
+        self.distributed = distributed
 
         if self.learnable_temp:
             if not personalized_tau:
@@ -130,8 +133,11 @@ class CLIP(nn.Module):
 
         if self.ita_type in ['clip', 'cyclip']:
             if self.personalized_tau:
-                image_ids = concat_all_gather(idx)
-                text_ids = concat_all_gather(text_idx)
+                if self.distributed:
+                    image_ids = concat_all_gather(idx)
+                    text_ids = concat_all_gather(text_idx)
+                else:
+                    image_ids, text_ids = idx, text_idx
                 loss_ita = self.criterion(image_feat, text_feat, image_ids, text_ids)
                 info_dict['avg_image_tau'] = self.criterion.image_tau[image_ids].mean()
                 info_dict['avg_text_tau'] = self.criterion.text_tau[text_ids].mean()
@@ -151,8 +157,11 @@ class CLIP(nn.Module):
             info_dict['avg_text_tau'] = 0.0
 
         elif self.ita_type == 'sogclr':
-            image_ids = concat_all_gather(idx)
-            text_ids = concat_all_gather(text_idx)
+            if self.distributed:
+                image_ids = concat_all_gather(idx)
+                text_ids = concat_all_gather(text_idx)
+            else:
+                image_ids, text_ids = idx, text_idx
             loss_ita, avg_image_tau, avg_text_tau = self.criterion(image_feat, text_feat, image_ids, text_ids, epoch)
             if not self.learnable_temp:
                 avg_tau = torch.tensor(self.temp)
@@ -163,22 +172,31 @@ class CLIP(nn.Module):
             info_dict['lamda'] = 0.0
 
         elif self.ita_type in ['sogclr_dro', 'isogclr_new']:
-            image_ids = concat_all_gather(idx)
-            text_ids = concat_all_gather(text_idx)
+            if self.distributed:
+                image_ids = concat_all_gather(idx)
+                text_ids = concat_all_gather(text_idx)
+            else:
+                image_ids, text_ids = idx, text_idx
             loss_ita, avg_image_tau, avg_text_tau, cur_eta, grad_tau_image, grad_tau_text, b_I, b_T = self.criterion(image_feat, text_feat, image_ids, text_ids, epoch, max_epoch)
             info_dict = {'avg_image_tau':avg_image_tau, 'avg_text_tau':avg_text_tau, 'cur_eta':cur_eta, 
                          'grad_tau_image':grad_tau_image, 'grad_tau_text':grad_tau_text, 'b_I':b_I, 'b_T':b_T}
 
         elif self.ita_type == 'isogclr_new_v2':
-            image_ids = concat_all_gather(idx)
-            text_ids = concat_all_gather(text_idx)
+            if self.distributed:
+                image_ids = concat_all_gather(idx)
+                text_ids = concat_all_gather(text_idx)
+            else:
+                image_ids, text_ids = idx, text_idx
             loss_ita, avg_image_tau, avg_text_tau, cur_eta, grad_tau_image, grad_tau_text, b_I, b_T, v, lamda = self.criterion(image_feat, text_feat, image_ids, text_ids, epoch, max_epoch)
             info_dict = {'avg_image_tau':avg_image_tau, 'avg_text_tau':avg_text_tau, 'cur_eta':cur_eta, 
                          'grad_tau_image':grad_tau_image, 'grad_tau_text':grad_tau_text, 'b_I':b_I, 'b_T':b_T, 'v':v, 'lamda':lamda}
 
         elif self.ita_type == 'isogclr_new_v1':
-            image_ids = concat_all_gather(idx)
-            text_ids = concat_all_gather(text_idx)
+            if self.distributed:
+                image_ids = concat_all_gather(idx)
+                text_ids = concat_all_gather(text_idx)
+            else:
+                image_ids, text_ids = idx, text_idx
             loss_ita, avg_image_tau, avg_text_tau = self.criterion(image_feat, text_feat, image_ids, text_ids, epoch)
             info_dict['avg_text_tau'] = avg_text_tau
             info_dict['avg_image_tau'] = avg_image_tau

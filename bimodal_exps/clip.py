@@ -285,9 +285,10 @@ def evaluation(model, data_loader, tokenizer, device, args):
         topk_sim, topk_idx = sims.topk(k=args.k_test, dim=0)
         score_matrix_t2i[start+i, topk_idx] = topk_sim
 
-    dist.barrier()   
-    torch.distributed.all_reduce(score_matrix_i2t, op=torch.distributed.ReduceOp.SUM) 
-    torch.distributed.all_reduce(score_matrix_t2i, op=torch.distributed.ReduceOp.SUM)        
+    if args.distributed:
+        dist.barrier()   
+        torch.distributed.all_reduce(score_matrix_i2t, op=torch.distributed.ReduceOp.SUM) 
+        torch.distributed.all_reduce(score_matrix_t2i, op=torch.distributed.ReduceOp.SUM)        
         
     total_time = time.time() - start_time
     total_time_str = str(datetime.timedelta(seconds=int(total_time)))
@@ -419,7 +420,7 @@ def main(args):
                   world_size=args.world_size, ita_type=args.ita_type, sogclr_gamma=args.sogclr_gamma, rho_I=args.rho_I, rho_T=args.rho_T, tau_init=args.tau_init,
                   eta_init=args.eta_init, beta_u=args.beta_u, temp=args.temp, learnable_temp=args.learnable_temp,
                   vicreg_sim_coeff=args.vicreg_sim_coeff, vicreg_std_coeff=args.vicreg_std_coeff, personalized_tau=args.personalized_tau, 
-                  use_temp_net=args.isogclr_temp_net, alpha=args.alpha)
+                  use_temp_net=args.isogclr_temp_net, alpha=args.alpha, distributed=args.distributed)
     model = model.to(device)
 
     if args.evaluate or args.ita_type == 'isogclr_denoise':
@@ -568,7 +569,8 @@ def main(args):
             break
            
         lr_scheduler.step(epoch+warmup_steps+1)  
-        dist.barrier()     
+        if args.distributed:
+            dist.barrier()     
         torch.cuda.empty_cache()
 
     total_time = time.time() - start_time
