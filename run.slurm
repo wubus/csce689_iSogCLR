@@ -24,6 +24,7 @@ data=cc3m
 train_file=${data}_train_subset.json
 gamma=0.8
 rho=8.0
+epochs=50
 
 CUDA_VISIBLE_DEVICES=0 python ./bimodal_exps/clip.py \
     --data_path ${data_path} \
@@ -37,4 +38,5 @@ CUDA_VISIBLE_DEVICES=0 python ./bimodal_exps/clip.py \
     --tau_init 0.01 \
     --sogclr_gamma ${gamma} \
     --eta_init 0.03 --sched cosine \
-    --no-distributed
+    --no-distributed \
+    --epochs ${epochs}
