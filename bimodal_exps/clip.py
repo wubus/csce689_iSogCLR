@@ -137,7 +137,7 @@ def train(model, data_loader, optimizer, tokenizer, epoch, max_epoch, warmup_ste
 
         metric_logger.update(lr=optimizer.param_groups[0]["lr"])
         metric_logger.update(lr_temp_net=optimizer.param_groups[2]["lr"])
-        if epoch==0 and i%step_size==0 and i<=warmup_iterations: 
+        if epoch==0 and i%step_size==0 and i<=warmup_iterations and scheduler is not None: 
             scheduler.step(i//step_size)
 
     # gather the stats from all processes
