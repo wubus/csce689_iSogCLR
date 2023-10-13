@@ -559,7 +559,7 @@ def main(args):
                     best = val_result_coco['r_mean']    
                     best_epoch = epoch
 
-                if (epoch+1) % 10 == 0:
+                if (epoch+1) % 2 == 0:
                     save_obj = {
                         'model': model_without_ddp.state_dict()
                     }
