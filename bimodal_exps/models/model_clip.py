@@ -71,9 +71,9 @@ class CLIP(nn.Module):
 
         if self.ita_type == 'clip':
             if not personalized_tau:
-                self.criterion = CLIP_Loss(personalized_tau=personalized_tau, temperature=self.temp)
+                self.criterion = CLIP_Loss(world_size=world_size, personalized_tau=personalized_tau, temperature=self.temp)
             else:
-                self.criterion = CLIP_Loss(personalized_tau=personalized_tau, image_tau=self.image_temp, text_tau=self.text_temp)
+                self.criterion = CLIP_Loss(world_size=world_size, personalized_tau=personalized_tau, image_tau=self.image_temp, text_tau=self.text_temp)
 
         elif self.ita_type == 'cyclip':
             self.criterion = CyCLIP_Loss(world_size=world_size, temperature=self.temp)
