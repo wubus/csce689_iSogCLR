@@ -1,6 +1,6 @@
 datasets
-datasets/
-clip_train/
+datasets*/
+clip_train*/
 pyrightconfig.json
 job_output*
 __pycache__/
