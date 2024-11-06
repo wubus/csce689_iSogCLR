@@ -39,3 +39,4 @@ urllib3==2.0.6
 wcwidth==0.2.8
 webdataset==0.2.57
 wheel==0.41.2
+opencv-python==4.10.0.84
