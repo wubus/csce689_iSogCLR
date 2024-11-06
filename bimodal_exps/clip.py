@@ -182,7 +182,7 @@ def create_zeroshot_dataloader(dataset_name, data_folder, image_size):
         dataset = datasets.ImageFolder(root=data_folder, transform=val_transform)
 
     data_loader = torch.utils.data.DataLoader(dataset, batch_size=512, shuffle=False,
-                                              num_workers=8, pin_memory=True)
+                                              num_workers=2, pin_memory=True)
 
     data_loader.num_samples = len(dataset)
 
@@ -409,7 +409,7 @@ def main(args):
     else:
         samplers = [None, None, None]
 
-    train_loader = create_train_loader(train_dataset, samplers[0], args.batch_size_train, 8, None)
+    train_loader = create_train_loader(train_dataset, samplers[0], args.batch_size_train, 2, None)
 
     # val_coco_loader, test_coco_loader = create_val_loader([val_coco_dataset, test_coco_dataset], samplers[1:], 
     #                                                       [args.batch_size_test]*2, [8]*2, [None]*2)
