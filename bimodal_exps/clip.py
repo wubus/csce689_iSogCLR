@@ -232,7 +232,7 @@ def zeroshot_transfer(model, data_loader, dataset_name, tokenizer, device):
         for k in topk:
             correct[k] += torch.sum(torch.any(predictions[:k], dim=0)).item()
 
-    results = {f"zeroshot_top{k}": correct[k] / data_loader.num_samples for k in topk}
+    results = {f"zeroshot_top{k}": 100.0 * correct[k] / data_loader.num_samples for k in topk}
 
     return results
 
