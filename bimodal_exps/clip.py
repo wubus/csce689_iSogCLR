@@ -33,6 +33,8 @@ import shutil
 from dataset import create_train_dataset, create_val_dataset, create_sampler, create_train_loader, create_val_loader
 from scheduler import create_scheduler
 from optim import create_optimizer
+from zeroshot_transfer.classes import CIFAR10_CLASSES, CIFAR100_CLASSES, IMAGENET_CLASSES
+
 
 from tqdm import tqdm
 
@@ -192,7 +194,14 @@ def create_zeroshot_dataloader(dataset_name, data_folder, image_size):
 def zeroshot_transfer(model, data_loader, dataset_name, tokenizer, device):
     model.eval()
 
-    config = eval(open(f"bimodal_exps/zeroshot_transfer/{dataset_name}_classes.py", "r").read())
+    if dataset_name == 'cifar10':
+        config = CIFAR10_CLASSES
+    elif dataset_name == 'cifar100':
+        config = CIFAR100_CLASSES
+    elif dataset_name == 'imagenet':
+        config = IMAGENET_CLASSES
+    else:
+        raise ValueError(f"Unknown dataset: {dataset_name}")
     classes, templates = config["classes"], config["templates"]
 
     text_embeddings = []
