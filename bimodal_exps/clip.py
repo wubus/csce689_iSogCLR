@@ -192,7 +192,7 @@ def create_zeroshot_dataloader(dataset_name, data_folder, image_size):
 def zeroshot_transfer(model, data_loader, dataset_name, tokenizer, device):
     model.eval()
 
-    config = eval(open(f"zeroshot_transfer/{dataset_name}_classes.py", "r").read())
+    config = eval(open(f"bimodal_exps/zeroshot_transfer/{dataset_name}_classes.py", "r").read())
     classes, templates = config["classes"], config["templates"]
 
     text_embeddings = []
@@ -416,7 +416,10 @@ def main(args):
         tokenizer = AutoTokenizer.from_pretrained(args.text_encoder)
 
     #### Zero-shot transfer ####
-    # zeroshot_dataloader = create_zeroshot_dataloader(dataset_name=args.zs_dataset, data_folder=args.zs_datafolder, image_size=args.image_res)
+    if args.zs_dataset:
+        zeroshot_dataloader = create_zeroshot_dataloader(dataset_name=args.zs_dataset, data_folder=args.zs_datafolder, image_size=args.image_res)
+    else:
+        zeroshot_dataloader = None
 
     #### Model #### 
     print("Creating model")
@@ -490,27 +493,31 @@ def main(args):
             train_stats = train(model, train_loader, optimizer, tokenizer, epoch, max_epoch, warmup_steps, device, lr_scheduler, 
                                 grad_scaler, args)
             
-        score_val_i2t_coco, score_val_t2i_coco = evaluation(model_without_ddp, val_coco_loader, tokenizer, device, args)
-        # score_test_i2t_coco, score_test_t2i_coco = evaluation(model_without_ddp, test_coco_loader, tokenizer, device, args)
+        if args.evaluate:
+            score_val_i2t_coco, score_val_t2i_coco = evaluation(model_without_ddp, val_coco_loader, tokenizer, device, args)
+            # score_test_i2t_coco, score_test_t2i_coco = evaluation(model_without_ddp, test_coco_loader, tokenizer, device, args)
 
-        # score_val_i2t_flickr, score_val_t2i_flickr = evaluation(model_without_ddp, val_flickr_loader, tokenizer, device, args)
-        # score_test_i2t_flickr, score_test_t2i_flickr = evaluation(model_without_ddp, test_flickr_loader, tokenizer, device, args)
-
-        # if args.evaluate:
-        #     zeroshot_results = zeroshot_transfer(model_without_ddp, zeroshot_dataloader, args.zs_dataset, tokenizer, device)
+            # score_val_i2t_flickr, score_val_t2i_flickr = evaluation(model_without_ddp, val_flickr_loader, tokenizer, device, args)
+            # score_test_i2t_flickr, score_test_t2i_flickr = evaluation(model_without_ddp, test_flickr_loader, tokenizer, device, args)
     
         if utils.is_main_process():  
-      
-            val_result_coco = itm_eval(score_val_i2t_coco, score_val_t2i_coco, val_coco_loader.dataset.txt2img, val_coco_loader.dataset.img2txt)  
-            print("coco val:", val_result_coco)
-            # test_result_coco = itm_eval(score_test_i2t_coco, score_test_t2i_coco, test_coco_loader.dataset.txt2img, test_coco_loader.dataset.img2txt)    
-            # print("coco test:", test_result_coco)
 
-            # if args.evaluate:
-            #     val_result_flickr = itm_eval(score_val_i2t_flickr, score_val_t2i_flickr, val_flickr_loader.dataset.txt2img, val_flickr_loader.dataset.img2txt)  
-            #     print("flickr val:", val_result_flickr)
-            #     test_result_flickr = itm_eval(score_test_i2t_flickr, score_test_t2i_flickr, test_flickr_loader.dataset.txt2img, test_flickr_loader.dataset.img2txt)    
-            #     print("flickr test:", test_result_flickr)
+            if args.evaluate:
+                val_result_coco = itm_eval(score_val_i2t_coco, score_val_t2i_coco, val_coco_loader.dataset.txt2img, val_coco_loader.dataset.img2txt)  
+                print("coco val:", val_result_coco)
+                # test_result_coco = itm_eval(score_test_i2t_coco, score_test_t2i_coco, test_coco_loader.dataset.txt2img, test_coco_loader.dataset.img2txt)    
+                # print("coco test:", test_result_coco)
+
+                if args.zs_dataset:
+                    zeroshot_results = zeroshot_transfer(model_without_ddp, zeroshot_dataloader, args.zs_dataset, tokenizer, device)
+                    print("zeroshot:", zeroshot_results)
+                else:
+                    zeroshot_results = None
+
+                # val_result_flickr = itm_eval(score_val_i2t_flickr, score_val_t2i_flickr, val_flickr_loader.dataset.txt2img, val_flickr_loader.dataset.img2txt)  
+                # print("flickr val:", val_result_flickr)
+                # test_result_flickr = itm_eval(score_test_i2t_flickr, score_test_t2i_flickr, test_flickr_loader.dataset.txt2img, test_flickr_loader.dataset.img2txt)    
+                # print("flickr test:", test_result_flickr)
 
             # save tau for visualization
             if not args.evaluate and args.store_tau and (epoch+1)%10==0:
@@ -538,12 +545,13 @@ def main(args):
                 # with open(os.path.join(args.output_dir, "flickr_log.txt"),"a") as f:
                 #     f.write(json.dumps(log_stats) + "\n") 
 
-                # with open(os.path.join(args.output_dir, f"zeroshot_{args.zs_dataset}_log.txt"), "a") as f:
-                #     f.write(json.dumps(zeroshot_results) + "\n")
+                if zeroshot_results:
+                    with open(os.path.join(args.output_dir, f"zeroshot_{args.zs_dataset}_log.txt"), "a") as f:
+                        f.write(json.dumps(zeroshot_results) + "\n")
 
             else:
                 log_stats = {**{f'train_{k}': v for k, v in train_stats.items()},
-                             **{f'val_{k}': v for k, v in val_result_coco.items()},
+                            #  **{f'val_{k}': v for k, v in val_result_coco.items()},
                              # **{f'test_{k}': v for k, v in test_result_coco.items()},                  
                              'epoch': epoch,
                              'data': 'coco',
@@ -551,23 +559,22 @@ def main(args):
                 with open(os.path.join(args.output_dir, "coco_log.txt"),"a") as f:
                     f.write(json.dumps(log_stats) + "\n")
 
-                if val_result_coco['r_mean'] > best:
-                    save_obj = {
-                        'model': model_without_ddp.state_dict(),
-                        'optimizer': optimizer.state_dict(),
-                        'lr_scheduler': lr_scheduler.state_dict(),
-                        'args': args,
-                        'epoch': epoch,
-                    }
-                    torch.save(save_obj, os.path.join(args.output_dir, 'checkpoint_best.pth'))  
-                    best = val_result_coco['r_mean']    
-                    best_epoch = epoch
+                # if val_result_coco['r_mean'] > best:
+                #     save_obj = {
+                #         'model': model_without_ddp.state_dict(),
+                #         'optimizer': optimizer.state_dict(),
+                #         'lr_scheduler': lr_scheduler.state_dict(),
+                #         'args': args,
+                #         'epoch': epoch,
+                #     }
+                #     torch.save(save_obj, os.path.join(args.output_dir, 'checkpoint_best.pth'))  
+                #     best = val_result_coco['r_mean']    
+                #     best_epoch = epoch
 
-                if (epoch+1) % 2 == 0:
-                    save_obj = {
-                        'model': model_without_ddp.state_dict()
-                    }
-                    torch.save(save_obj, os.path.join(args.output_dir, 'checkpoint_'+str(epoch+1)+'.pth'))
+                save_obj = {
+                    'model': model_without_ddp.state_dict()
+                }
+                torch.save(save_obj, os.path.join(args.output_dir, 'checkpoint_'+str(epoch+1)+'.pth'))
                     
         if args.evaluate: 
             break
@@ -666,8 +673,8 @@ if __name__ == '__main__':
     parser.add_argument('--extract_data', action='store_true')
 
     # zero-shot transfer
-    # parser.add_argument('--zs_dataset', required=True, choices=['cifar10', 'cifar100', 'imagenet'])
-    # parser.add_argument('--zs_datafolder', default='./datasets', type=str)
+    parser.add_argument('--zs_dataset', default="", choices=['cifar10', 'cifar100', 'imagenet'])
+    parser.add_argument('--zs_datafolder', default='./datasets', type=str)
 
     args = parser.parse_args()
 
