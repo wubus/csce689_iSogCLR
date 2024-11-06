@@ -18,7 +18,7 @@ pip install -r requirements.txt
 
 ### Training and Evaluation
 
-1. Download the data: [cc3m_subset_100k.tar.gz](https://drive.google.com/file/d/142zQjlOw0Xw4tKzXMrQjYE6NtGRTeasT/view?usp=drive_link), a 100k subset of the [Conceptual Captions](https://ai.google.com/research/ConceptualCaptions/) dataset; [mscoco_val.tar.gz](https://drive.google.com/file/d/142tMsnclHTTPpnTXHSeNgTUlBk4She6o/view?usp=drive_link), a 5k subset of the [COCO](https://cocodataset.org/#home) val2014 dataset; [clip_train.tar.gz](https://drive.google.com/file/d/142xxRoMaHxX3BIfCw_1b_G_dgu-02Yq3/view?usp=drive_link), captions of the previous datasets. The code and data should be structured as follows:
+1. Download the data: [cc3m_subset_100k.tar.gz](https://drive.google.com/file/d/142zQjlOw0Xw4tKzXMrQjYE6NtGRTeasT/view?usp=drive_link), a 100k subset of the [Conceptual Captions](https://ai.google.com/research/ConceptualCaptions/) dataset; [mscoco_val.tar.gz](https://drive.google.com/file/d/142tMsnclHTTPpnTXHSeNgTUlBk4She6o/view?usp=drive_link), a 5k subset of the [COCO](https://cocodataset.org/#home) val2014 dataset; [clip_train.tar.gz](https://drive.google.com/file/d/142xxRoMaHxX3BIfCw_1b_G_dgu-02Yq3/view?usp=drive_link), captions of the previous datasets; [imagenet/val.tar](https://drive.google.com/file/d/1NXhfhwFy-nhdABACkodgYqm9pomDKE39/view?usp=sharing), [ImageNet](https://www.image-net.org/challenges/LSVRC/index.php) validation set. The code and data should be structured as follows:
     ```
     .
     +--bimodal_exps (code)
@@ -30,6 +30,8 @@ pip install -r requirements.txt
     +--datasets (images)
     |  +--cc3m_subset_100k
     |  +--mscoco_val
+    |  +--imagnet
+    |  |  +-- val
     ```
 2. To train a model on cc3m, use `run.slurm` if slurm is supported or run
     ```bash
@@ -59,7 +61,7 @@ pip install -r requirements.txt
         --no-distributed \
         --epochs ${epochs}
     ```
-3. To test the performance of a model on mscoco, use `eval.slurm` if slurm is supported or run
+3. To test the performance of a model on MSCOCO and ImageNet, use `eval.slurm` if slurm is supported or run
     ```bash
     export PYTHONPATH="$PYTHONPATH:./bimodal_exps"
     export HUGGINGFACE_HUB_CACHE='./checkpoints/huggingface'
