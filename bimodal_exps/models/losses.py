@@ -164,7 +164,7 @@ class CySogCLR_Loss(nn.Module):
         #Inputs:
         #   N is number of samples in training set
         
-        super(SogCLR_Loss, self).__init__()
+        super(CySogCLR_Loss, self).__init__()
         self.world_size = world_size
         self.s_I = torch.zeros(N).cuda()
         self.s_T = torch.zeros(N).cuda()
