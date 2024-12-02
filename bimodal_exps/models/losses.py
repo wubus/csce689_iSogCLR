@@ -262,7 +262,7 @@ class CySogCLR_Loss(nn.Module):
         # crossmodal_cyclic_loss
         crossmodal_cyclic_loss = (logits_text_per_image - logits_image_per_text).square().mean() * (self.temperature ** 2) * batch_size
 
-        total_loss = image_loss.mean() + text_loss.mean() + 
+        total_loss = image_loss.mean() + text_loss.mean() + self.cylambda_1 * inmodal_cyclic_loss + self.cylambda_2 * crossmodal_cyclic_loss
 
         return total_loss, 0.0, 0.0
 
