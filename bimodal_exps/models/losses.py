@@ -356,7 +356,7 @@ class VICReg_Loss(nn.Module):
 
     def forward(self, image_features, text_features):
         x = image_features  #important change here for vicreg
-        y = test_features
+        y = text_features
         if self.world_size > 1:
             x = torch.cat(GatherLayer.apply(image_features), dim=0)
             y = torch.cat(GatherLayer.apply(text_features), dim=0)
