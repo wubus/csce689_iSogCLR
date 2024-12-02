@@ -159,7 +159,7 @@ class SogCLR_Loss(nn.Module):
 
 class CySogCLR_Loss(nn.Module):
     def __init__(self, N=2900000, gamma=0.1, temperature=0.07, world_size=8, bsz=128, enable_surrogate=False, surrogate_c=1.0,
-                lamda_rho=1.0, lamda_init=1.0):
+                lamda_rho=1.0, lamda_init=1.0, cylambda_1=0.25 , cylambda_2=0.25):
         
         #Inputs:
         #   N is number of samples in training set
