@@ -622,13 +622,13 @@ if __name__ == '__main__':
     # optimizer and schedular
     parser.add_argument('--opt', default='Radam')
     parser.add_argument('--sched', default='cosine')
-    parser.add_argument('--lr', default=1e-1, type=float)
-    parser.add_argument('--lr_temp_net', default=1e-6, type=float)
+    parser.add_argument('--lr', default=1e-3, type=float)
+    parser.add_argument('--lr_temp_net', default=1e-3, type=float)
     parser.add_argument('--wd_temp_net', default=1e-3, type=float,
                         help='weight decay for temperature network')
     parser.add_argument('--min_lr', default=1e-3, type=float)
     parser.add_argument('--warmup', default=True, type=bool)
-    parser.add_argument('--warmup_lr', default=1e-3, type=float)
+    parser.add_argument('--warmup_lr', default=1e-6, type=float)
     parser.add_argument('--weight_decay', default=0.0002, type=float)
     parser.add_argument('--decay_rate', default=1, type=float)
     parser.add_argument('--epochs', default=30, type=int)
