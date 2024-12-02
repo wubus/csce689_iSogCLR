@@ -4,7 +4,7 @@ import timm
 from transformers import AutoModel, RobertaModel
 
 from models.losses import CLIP_Loss, CyCLIP_Loss, SogCLR_Loss, VICReg_Loss
-from models.losses import iSogCLR_New_v2_Loss, iSogCLR_New_v1_Loss, onlineCLR_Loss, iSogCLR_New_Loss
+from models.losses import iSogCLR_New_v2_Loss, iSogCLR_New_v1_Loss, onlineCLR_Loss, iSogCLR_New_Loss, CySogCLR_Loss
 
 import torch
 from torch import nn
