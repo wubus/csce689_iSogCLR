@@ -257,12 +257,12 @@ class CySogCLR_Loss(nn.Module):
         logits_image_per_text = logits_text_per_image.t()
         logits_image_per_image = (image_features @ image_features.t()) / self.temperature
         logits_text_per_text = (text_features @ text_features.t()) / self.temperature
-        inmodal_cyclic_loss = (logits_image_per_image - logits_text_per_text).square().mean() * (self.temperature ** 2) * batch_size
+        inmodal_cyclic_loss = (logits_image_per_image - logits_text_per_text).square().mean() * (self.temperature ** 2)
 
         # crossmodal_cyclic_loss
-        crossmodal_cyclic_loss = (logits_text_per_image - logits_image_per_text).square().mean() * (self.temperature ** 2) * batch_size
+        crossmodal_cyclic_loss = (logits_text_per_image - logits_image_per_text).square().mean() * (self.temperature ** 2)
 
-        total_loss = image_loss.mean() + text_loss.mean() + self.cylambda_1 * inmodal_cyclic_loss + self.cylambda_2 * crossmodal_cyclic_loss
+        total_loss = 0.5 * image_loss.mean() + 0.5 * text_loss.mean() + self.cylambda_1 * inmodal_cyclic_loss + self.cylambda_2 * crossmodal_cyclic_loss
 
         return total_loss, 0.0, 0.0
 
