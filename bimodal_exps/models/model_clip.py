@@ -74,7 +74,8 @@ class CLIP(nn.Module):
                 self.criterion = CLIP_Loss(world_size=world_size, personalized_tau=personalized_tau, temperature=self.temp)
             else:
                 self.criterion = CLIP_Loss(world_size=world_size, personalized_tau=personalized_tau, image_tau=self.image_temp, text_tau=self.text_temp)
-
+        elif self.ita_type == 'cysogclr':
+            self.criterion = CySogCLR_Loss(world_size=world_size, gamma=sogclr_gamma, temperature=self.temp, bsz=bsz)
         elif self.ita_type == 'cyclip':
             self.criterion = CyCLIP_Loss(world_size=world_size, temperature=self.temp)
 
@@ -157,6 +158,21 @@ class CLIP(nn.Module):
             info_dict['avg_text_tau'] = 0.0
 
         elif self.ita_type == 'sogclr':
+            if self.distributed:
+                image_ids = concat_all_gather(idx)
+                text_ids = concat_all_gather(text_idx)
+            else:
+                image_ids, text_ids = idx, text_idx
+            loss_ita, avg_image_tau, avg_text_tau = self.criterion(image_feat, text_feat, image_ids, text_ids, epoch)
+            if not self.learnable_temp:
+                avg_tau = torch.tensor(self.temp)
+            else:
+                avg_tau = self.temp
+            info_dict['avg_text_tau'] = avg_text_tau
+            info_dict['avg_image_tau'] = avg_image_tau
+            info_dict['lamda'] = 0.0
+
+        elif self.ita_type == 'cysogclr':
             if self.distributed:
                 image_ids = concat_all_gather(idx)
                 text_ids = concat_all_gather(text_idx)
