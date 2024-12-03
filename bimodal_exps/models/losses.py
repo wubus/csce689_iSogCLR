@@ -266,6 +266,147 @@ class CySogCLR_Loss(nn.Module):
 
         return total_loss, 0.0, 0.0
 
+class icySogCLR_New_Loss(nn.Module):
+    def __init__(self, N=2900000, gamma=0.8, tau_init=0.01, world_size=8, bsz=128, rho_I=8.0, rho_T=8.0,
+                       use_temp_net=True, cylambda_1=0.25 , cylambda_2=0.25, feature_dim=256):  # use temperature network      
+        
+        #Inputs:
+        #   N is number of samples in training set
+        
+        super(icySogCLR_New_Loss, self).__init__()
+        self.world_size = world_size
+        self.s_I = torch.zeros(N).cuda()
+        self.s_T = torch.zeros(N).cuda()
+        self.b_I = torch.zeros(N).cuda()
+        self.b_T = torch.zeros(N).cuda()
+        self.gamma = gamma
+        self.eps = 1e-14
+        self.bsz = bsz
+        self.mask_neg = (1.0 - torch.eye(bsz)).cuda()
+
+        self.tau_min, self.tau_max = 0.005, 0.05
+
+        self.rho_I = rho_I
+        self.rho_T = rho_T
+
+        self.use_temp_net = use_temp_net
+
+        self.eta_init = 1e-5  
+
+        if self.use_temp_net:
+            self.image_temp_gen = TempGenerator(feature_dim=feature_dim, M=256, tau_min=self.tau_min, tau_max=self.tau_max).cuda()
+            self.text_temp_gen = TempGenerator(feature_dim=feature_dim, M=256, tau_min=self.tau_min, tau_max=self.tau_max).cuda()
+        else:
+            self.beta_u = 0.5
+            self.grad_clip = 5.0
+            self.tau_I = torch.ones(N).cuda() * tau_init
+            self.tau_T = torch.ones(N).cuda() * tau_init
+            self.u_I = torch.zeros(N).cuda()
+            self.u_T = torch.zeros(N).cuda()
+        self.cylambda_1 = cylambda_1
+        self.cylambda_2 = cylambda_2
+
+
+    def forward(self, image_features, text_features, image_ids, text_ids, epoch, max_epoch):
+        
+        #Inputs:
+        #    image_features, text_features is l2-normalized tensor
+        #    image_features, text_features: [batch_size, emb_dim]
+        
+        if self.world_size > 1:
+            image_features = torch.cat(GatherLayer.apply(image_features), dim=0)
+            text_features = torch.cat(GatherLayer.apply(text_features), dim=0)
+
+        # compute the logits (similarity between each image-text pair)
+        sim = torch.einsum('i d, j d -> i j', image_features, text_features)
+        diag_sim = torch.diagonal(sim)
+
+        batch_size = sim.shape[0]
+
+        # generate temperatures
+        if self.use_temp_net:
+            tau_image = self.image_temp_gen(image_features.detach())
+            tau_text = self.text_temp_gen(text_features.detach())
+        else:
+            tau_image = self.tau_I[image_ids]
+            tau_text = self.tau_T[text_ids]
+
+        # E_I(x_i)*E_T(t) - E_I(x_i)*E_T(t_i)
+        image_diffs = sim - diag_sim[:, None]
+        # E_I(x)*E_T(t_i) - E_I(x_i)*E_T(t_i)
+        text_diffs = sim - diag_sim[None, :]
+
+        image_diffs_d_temps = (image_diffs / tau_image[:, None]).detach()
+        text_diffs_d_temps = (text_diffs / tau_text[None, :]).detach()
+
+        # update b
+        old_b_I = self.b_I[image_ids]
+        new_b_I = torch.max(image_diffs_d_temps, old_b_I[:, None].tile(1, batch_size))
+        self.b_I[image_ids] = torch.max(new_b_I, dim=1)[0]
+
+        old_b_T = self.b_T[text_ids]
+        new_b_T = torch.max(text_diffs_d_temps, old_b_T[None, :].tile(batch_size, 1))
+        self.b_T[text_ids] = torch.max(new_b_T, dim=0)[0]
+
+        exp_image_diffs = torch.exp(image_diffs_d_temps - self.b_I[image_ids][:, None]) * self.mask_neg # -b to avoid exp operation overflow
+        exp_text_diffs = torch.exp(text_diffs_d_temps - self.b_T[text_ids][None, :]) * self.mask_neg
+
+        g_I = torch.sum(exp_image_diffs, dim=1, keepdim=True)
+        g_T = torch.sum(exp_text_diffs, dim=0, keepdim=True)
+
+        if epoch == 0:
+            s_I = g_I
+            s_T = g_T
+        else:
+            s_I = (1.0-self.gamma) * self.s_I[image_ids] * torch.exp(old_b_I - self.b_I[image_ids]) + self.gamma * g_I.squeeze()
+            s_T = (1.0-self.gamma) * self.s_T[text_ids] * torch.exp(old_b_T - self.b_T[text_ids]) + self.gamma * g_T.squeeze()
+            s_I = s_I.reshape(g_I.shape)
+            s_T = s_T.reshape(g_T.shape)
+
+        self.s_I[image_ids] = s_I.squeeze()
+        self.s_T[text_ids] = s_T.squeeze()
+
+        s_I = s_I.clamp(min=self.eps)
+        s_T = s_T.clamp(min=self.eps)
+
+        weights_image = exp_image_diffs / s_I
+        weights_text = exp_text_diffs / s_T
+
+        image_loss = torch.sum(weights_image * image_diffs, dim=1, keepdim=True)
+        text_loss = torch.sum(weights_text * text_diffs, dim=0, keepdim=True)
+
+        total_loss = image_loss.mean() + text_loss.mean()
+
+         # inmodal_cyclic_loss
+        logits_text_per_image = (image_features @ text_features.t())
+        logits_image_per_text = logits_text_per_image.t()
+        logits_image_per_image = (image_features @ image_features.t())
+        logits_text_per_text = (text_features @ text_features.t())
+        inmodal_cyclic_loss = (logits_image_per_image - logits_text_per_text).square().mean()
+
+        # crossmodal_cyclic_loss
+        crossmodal_cyclic_loss = (logits_text_per_image - logits_image_per_text).square().mean()
+ 
+        total_loss += self.cylambda_1 * inmodal_cyclic_loss + self.cylambda_2 * crossmodal_cyclic_loss
+
+        temp_weight_image = torch.log(s_I / (batch_size-1)) + self.b_I[image_ids][:, None] + self.rho_I - torch.sum(weights_image * image_diffs_d_temps, dim=1, keepdim=True)
+        temp_weight_text = torch.log(s_T / (batch_size-1)) + self.b_T[text_ids][None, :] + self.rho_T - torch.sum(weights_text * text_diffs_d_temps, dim=0, keepdim=True)
+
+        if self.use_temp_net:
+            temp_image_loss = torch.mean(temp_weight_image * tau_image[:, None])
+            temp_text_loss = torch.mean(temp_weight_text * tau_text[None, :])
+
+            total_loss += temp_image_loss + temp_text_loss
+
+        else:
+            self.u_I[image_ids] = (1.0-self.beta_u) * self.u_I[image_ids] + self.beta_u * temp_weight_image.squeeze().clamp_(min=-self.grad_clip, max=self.grad_clip)
+            self.u_T[text_ids] = (1.0-self.beta_u) * self.u_T[text_ids] + self.beta_u * temp_weight_text.squeeze().clamp_(min=-self.grad_clip, max=self.grad_clip)
+
+            self.tau_I[image_ids] = (tau_image - self.eta_init * self.u_I[image_ids]).clamp_(min=self.tau_min, max=self.tau_max)
+            self.tau_T[text_ids] = (tau_text - self.eta_init * self.u_T[text_ids]).clamp_(min=self.tau_min, max=self.tau_max)
+
+        return total_loss, tau_image.mean().item(), tau_text.mean().item(), self.eta_init,  \
+                temp_weight_image.mean().item(), temp_weight_text.mean().item(), temp_weight_image.max().item(), temp_weight_image.min().item()
 
 # add some new features to iSogCLR
 class iSogCLR_New_Loss(nn.Module):
