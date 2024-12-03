@@ -5,7 +5,7 @@ from transformers import AutoModel, RobertaModel
 
 from models.losses import CLIP_Loss, CyCLIP_Loss, SogCLR_Loss, VICReg_Loss
 from models.losses import iSogCLR_New_v2_Loss, iSogCLR_New_v1_Loss, onlineCLR_Loss, iSogCLR_New_Loss
-from models.losses import CySogCLR_Loss
+from models.losses import CySogCLR_Loss, iCySogCLR_New_Loss
 
 import torch
 from torch import nn
@@ -77,6 +77,9 @@ class CLIP(nn.Module):
                 self.criterion = CLIP_Loss(world_size=world_size, personalized_tau=personalized_tau, image_tau=self.image_temp, text_tau=self.text_temp)
         elif self.ita_type == 'cysogclr':
             self.criterion = CySogCLR_Loss(world_size=world_size, gamma=sogclr_gamma, temperature=self.temp, bsz=bsz)
+        elif self.ita_type == 'icysogclr':
+            self.criterion = iCySogCLR_Loss(world_size=world_size, gamma=sogclr_gamma, rho_I=rho_I, rho_T=rho_T, tau_init=tau_init, bsz=bsz,
+                                              use_temp_net=use_temp_net, feature_dim=embed_dim)
         elif self.ita_type == 'cyclip':
             self.criterion = CyCLIP_Loss(world_size=world_size, temperature=self.temp)
 
