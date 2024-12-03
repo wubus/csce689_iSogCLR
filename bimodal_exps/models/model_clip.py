@@ -191,7 +191,7 @@ class CLIP(nn.Module):
             info_dict['avg_image_tau'] = avg_image_tau
             info_dict['lamda'] = 0.0
 
-        elif self.ita_type in ['sogclr_dro', 'isogclr_new']:
+        elif self.ita_type in ['sogclr_dro', 'isogclr_new', 'icysogclr']:
             if self.distributed:
                 image_ids = concat_all_gather(idx)
                 text_ids = concat_all_gather(text_idx)
