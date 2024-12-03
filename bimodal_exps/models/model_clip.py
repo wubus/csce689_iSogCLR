@@ -78,7 +78,7 @@ class CLIP(nn.Module):
         elif self.ita_type == 'cysogclr':
             self.criterion = CySogCLR_Loss(world_size=world_size, gamma=sogclr_gamma, temperature=self.temp, bsz=bsz)
         elif self.ita_type == 'icysogclr':
-            self.criterion = icySogCLR_Loss(world_size=world_size, gamma=sogclr_gamma, rho_I=rho_I, rho_T=rho_T, tau_init=tau_init, bsz=bsz,
+            self.criterion = icySogCLR_New_Loss(world_size=world_size, gamma=sogclr_gamma, rho_I=rho_I, rho_T=rho_T, tau_init=tau_init, bsz=bsz,
                                               use_temp_net=use_temp_net, feature_dim=embed_dim)
         elif self.ita_type == 'cyclip':
             self.criterion = CyCLIP_Loss(world_size=world_size, temperature=self.temp)
